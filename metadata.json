@@ -1,0 +1,6 @@
+{
+  "name": "MY DEEN & LIFE",
+  "description": "Become Better Every Day, For The Sake of Allah. Private personal Islamic growth and life improvement dashboard with Salah, Quran, daily Sunnah, character improvement, and Ramadan 1448 AH preparation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

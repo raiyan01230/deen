@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-arabic: 'Noto Naskh Arabic', 'Amiri', serif;
+    --font-bengali: 'Noto Sans Bengali', system-ui, sans-serif;
+    --color-cream: #FAF8F5;
+    --color-card: #FFFFFF;
+    --color-gold: #C5A059;
+    --color-gold-dark: #9A7B38;
+    --color-emerald-deep: #0D4D3D;
+  }
+
+  body {
+    font-family: 'Noto Sans Bengali', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #FAF8F5;
+    color: #1F2937;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+
+.font-arabic {
+  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+  direction: rtl;
+  text-align: right;
+  line-height: 2.1;
+  letter-spacing: 0.02em;
+}
+
+.font-bengali {
+  font-family: 'Noto Sans Bengali', system-ui, sans-serif;
+}
+
+/* Claymorphism + Neumorphism + Spatial UI Soft tactile shadow styles */
+.clay-card {
+  background-color: #FFFFFF;
+  border-radius: 1.25rem;
+  box-shadow: 
+    0 10px 25px -5px rgba(15, 76, 58, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.02),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -2px 4px 0 rgba(197, 160, 89, 0.08);
+  border: 1px solid rgba(230, 224, 214, 0.7);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.clay-card-emerald {
+  background: linear-gradient(135deg, #0D4D3D 0%, #082F25 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 
+    0 14px 35px -5px rgba(15, 76, 58, 0.35),
+    0 4px 10px -2px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.25) !important;
+}
+
+.clay-card:hover {
+  box-shadow: 
+    0 16px 30px -6px rgba(15, 76, 58, 0.08),
+    0 6px 12px -3px rgba(0, 0, 0, 0.03),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -2px 4px 0 rgba(197, 160, 89, 0.12);
+}
+
+.clay-pressed {
+  box-shadow: 
+    inset 0 3px 6px 0 rgba(0, 0, 0, 0.08),
+    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.6);
+}
+
+.clay-button-primary {
+  background: linear-gradient(135deg, #0F4C3A 0%, #093327 100%);
+  color: #FFFFFF;
+  box-shadow: 
+    0 4px 14px 0 rgba(15, 76, 58, 0.35),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -2px 2px 0 rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.clay-button-primary:hover {
+  background: linear-gradient(135deg, #135A46 0%, #0C3E30 100%);
+  box-shadow: 
+    0 6px 20px 0 rgba(15, 76, 58, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.clay-button-primary:active {
+  transform: translateY(1px);
+  box-shadow: 
+    0 2px 6px 0 rgba(15, 76, 58, 0.2),
+    inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.clay-button-gold {
+  background: linear-gradient(135deg, #D4AF37 0%, #B8934A 100%);
+  color: #FFFFFF;
+  box-shadow: 
+    0 4px 14px 0 rgba(184, 147, 74, 0.35),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.2s ease;
+}
+
+.clay-button-gold:hover {
+  background: linear-gradient(135deg, #DFBD4D 0%, #C49F54 100%);
+  transform: translateY(-1px);
+}
+
+.spatial-glow {
+  box-shadow: 
+    0 0 0 1px rgba(197, 160, 89, 0.2),
+    0 8px 30px -4px rgba(15, 76, 58, 0.12);
+}
+
+/* Islamic arabesque subtle geometric background pattern */
+.islamic-pattern {
+  background-color: #FAF8F5;
+  background-image: radial-gradient(rgba(197, 160, 89, 0.08) 1px, transparent 1px),
+                    radial-gradient(rgba(15, 76, 58, 0.05) 1px, #FAF8F5 1px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F3EFEA;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B8934A;
+}
