@@ -9,6 +9,7 @@ export interface FirebaseClientConfig {
   storageBucket?: string;
   messagingSenderId?: string;
   appId: string;
+  databaseURL?: string;
 }
 
 export const DEFAULT_FIREBASE_CONFIG: FirebaseClientConfig = {
@@ -18,6 +19,7 @@ export const DEFAULT_FIREBASE_CONFIG: FirebaseClientConfig = {
   storageBucket: 'personal-good-deeds.firebasestorage.app',
   messagingSenderId: '347282679484',
   appId: '1:347282679484:web:5b11a6502d891483cf12b9',
+  databaseURL: 'https://personal-good-deeds-default-rtdb.firebaseio.com',
 };
 
 // Check environment variables, saved storage, or default to user configuration
