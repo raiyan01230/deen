@@ -50,22 +50,20 @@ export async function getAllHadiths(uid?: string): Promise<HadithRecord[]> {
 }
 
 /**
- * Deterministic Daily Rotation Algorithm:
- * Returns exactly one verified Hadith per day.
- * Never repeats until the full verified library has been exhausted!
+ * Random Rotation Algorithm:
+ * Returns one random verified Hadith from the library.
+ * Changes on every refresh or component mount.
  */
-export function getHadithOfTheDay(hadiths: HadithRecord[], dateStr: string = ''): HadithRecord {
+export function getHadithOfTheDay(hadiths: HadithRecord[], _dateStr: string = ''): HadithRecord {
   const verifiedList = hadiths.filter((h) => h.verificationStatus === 'verified');
   if (verifiedList.length === 0) {
     return hadiths[0] || INITIAL_SAHIH_HADITHS[0];
   }
 
-  const targetDate = dateStr ? new Date(`${dateStr}T00:00:00+06:00`) : new Date();
-  // Calculate day count since Unix epoch in Asia/Dhaka
-  const dayNumber = Math.floor(targetDate.getTime() / (1000 * 60 * 60 * 24));
-  const rotationIndex = Math.abs(dayNumber) % verifiedList.length;
+  // Pure random selection for every visit/refresh
+  const randomIndex = Math.floor(Math.random() * verifiedList.length);
 
-  return verifiedList[rotationIndex];
+  return verifiedList[randomIndex];
 }
 
 /**

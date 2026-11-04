@@ -1,17 +1,71 @@
-# Implementation Plan - Ayyam Al-Bid Fix & Notifications
+# Implementation Plan - Hadith Library Expansion & Random Rotation
 
-The Ayyam Al-Bid tracker is currently failing due to rigid month-start calculations and a lack of background notification triggers. I will implement a more dynamic system that handles month transitions and ensures notifications are actually fired.
+Expand the "My Deen & Life" Hadith module by adding ~20 new verified Sahih narrations and switching the dashboard display from a deterministic daily rotation to a random selection that refreshes on every visit.
 
-## 1. Core Logic Refinement
-- **Fix Month Transitions**: Update `ayyamService.ts` to calculate both the current and the next Hijri month's fasting days. If current dates (13-15) have passed, the dashboard will automatically prioritize and highlight the upcoming month.
-- **Robust Hijri Mapping**: Refine the calculation of the 1st of the Hijri month based on the astronomical tabular algorithm to ensure accuracy.
-- **Correct Banner Logic**: Fix the countdown and "Today is Fasting" banner in `AyyamAlBidDashboard.tsx` to ensure it only triggers on the exact 13th, 14th, or 15th.
+## User Review & Critical Decisions
 
-## 2. Notification System
-- **In-App Notification Center**: Add an initialization logic in `App.tsx` that checks for Ayyam Al-Bid days within the next 3 days. It will generate persistent in-app notifications if they haven't been created yet.
-- **Browser Pop-ups**: Trigger a `Notification` API call or a fallback custom modal when a user opens the app on a fasting day.
-- **Email Trigger**: Ensure the frontend sends a request to the backend `/api/notifications/email-ayyam-al-bid` whenever a new fasting period is approaching (idempotency handled by Firestore).
+> [!IMPORTANT]
+> The Hadith rotation will now be truly random. Every time you refresh the page or navigate back to the Home tab, a different verified Sahih Hadith will appear.
 
-## 3. UI/UX Improvements
-- **Dual Month View**: The dashboard will now show the status of the current month and the dates for the upcoming month side-by-side or in a clear sequence.
-- **Sync Status & Logs**: Ensure all fasting logs are correctly synced with Firestore so notifications are not duplicated across devices.
+- **Confirmed Collections**: Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawood, and Sunan al-Tirmidhi.
+- **Confirmed Source**: Official Islamic Foundation Bangladesh (IFB) translations.
+- **Rotation Logic**: Random selection from the verified library on each component initialization.
+
+## 1. Overview & Core Concept
+
+- **What It Does**: Populates the app with more authentic spiritual guidance and ensures the dashboard feels dynamic by showing a new Hadith upon every refresh.
+- **Key Value**: Provides a richer library of authentic Sahih narrations and increases engagement through variety.
+
+## 2. User Experience & Visual Design
+
+- **Dashboard Refresh**: The "Hadith of the Day" card on the Home dashboard will display a different random Hadith each time the app loads.
+- **Updated Labels**:
+    - Title: "নির্বাচিত সহীহ হাদিস (র‍্যান্ডম)" (Selected Sahih Hadith (Random))
+    - Subtitle: "হাদিস ভাণ্ডার লাইব্রেরি: [X]টি পরীক্ষিত সহীহ হাদিস" (Hadith Library: [X] Verified Sahih Hadiths)
+- **Visual Identity**: Maintains the current "clay-card" aesthetic with emerald/amber accents.
+
+## 3. Key Product Decisions & Trade-Offs
+
+- **Decision 1: Random vs Session-based Random**
+    - *Chosen Approach*: Pure random on mount.
+    - *Why*: User explicitly asked for "refresh or visit" to show a new one.
+- **Decision 2: Hardcoded vs Dynamic Data**
+    - *Chosen Approach*: Expanding the `INITIAL_SAHIH_HADITHS` array in `hadithLibrary.ts`.
+    - *Why*: Simplifies deployment and ensures a solid baseline of 40+ hadiths without requiring external API calls every time.
+
+## 4. Technical Architecture & Data Strategy
+
+### Component & Service Mapping
+
+```drawio
+┌──────────────────────┐      ┌───────────────────────────┐
+│     HomeDashboard    │ ───> │     HadithOfTheDay        │
+│ (Triggers Load)      │      │ (Displays Random Record)  │
+└──────────┬───────────┘      └─────────────┬─────────────┘
+           │                                │
+           ▼                                ▼
+┌──────────────────────┐      ┌───────────────────────────┐
+│     App.tsx          │ <─── │    hadithService.ts       │
+│ (State Management)   │      │ (getHadithOfTheDay Logic) │
+└──────────┬───────────┘      └─────────────┬─────────────┘
+           │                                │
+           ▼                                ▼
+┌──────────────────────┐      ┌───────────────────────────┐
+│  hadithLibrary.ts    │      │    hadith.ts (Types)      │
+│  (Data Expansion)    │      │                           │
+└──────────────────────┘      └───────────────────────────┘
+```
+
+### Technical Steps
+
+1.  **Data Expansion**:
+    *   Update `src/data/hadithLibrary.ts` to include ~20 new records with Arabic, Bengali (IFB), Narrator, Collection, and Source URL.
+2.  **Rotation Logic Update**:
+    *   Modify `src/services/hadithService.ts`:
+        *   Refactor `getHadithOfTheDay` to implement `Math.random()` based selection.
+        *   (Optional) Rename to `getRandomHadith` for clarity, though `getHadithOfTheDay` can be kept as a generic "Dashboard Hadith" getter.
+3.  **UI Label Refinement**:
+    *   Update `src/components/HadithOfTheDay.tsx` header text to "(র‍্যান্ডম)".
+4.  **Verification**:
+    *   Ensure the "Verified Count" updates correctly in the UI.
+    *   Test that refresh indeed shows a new narration.

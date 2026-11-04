@@ -43,7 +43,7 @@ export const HadithOfTheDay: React.FC<HadithOfTheDayProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-stone-900 text-base font-bengali">
-                আজকের সহীহ হাদিস (দৈনিক রোটেশন)
+                নির্বাচিত সহীহ হাদিস (র‍্যান্ডম)
               </h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
                 {hadith.authenticityGrade}
