@@ -69,11 +69,11 @@ export const ImprovementTracker: React.FC<ImprovementTrackerProps> = ({ uid, tod
     if (isCompleted) return;
 
     const newCompleted = [...progress.completedTaskIds, taskId];
+    const newLevel = Math.floor(newCompleted.length / 7) + 1;
     
-    // Logic to unlock next challenge if 7 tasks of current are done
-    // This will be handled inside ChallengeRoadmap but synced here
     const updatedProgress: UserChallengeProgress = {
       ...progress,
+      currentChallengeId: newLevel,
       completedTaskIds: newCompleted,
       lastTaskCompletedAt: new Date().toISOString()
     };
