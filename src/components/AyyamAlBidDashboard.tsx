@@ -40,6 +40,7 @@ import {
   triggerAyyamEmailAlert,
   getMonthCorrectionAudits,
   saveMonthCorrectionAudit,
+  getServerStatus,
 } from '../services/ayyamService';
 import { toBengaliNumber } from '../utils/hijriCalendar';
 
@@ -74,8 +75,12 @@ export const AyyamAlBidDashboard: React.FC<AyyamAlBidDashboardProps> = ({ uid, u
   const [correctionReason, setCorrectionReason] = useState('');
   const [auditList, setAuditList] = useState<MonthStartCorrectionAudit[]>([]);
 
+  // Server status
+  const [serverStatus, setServerStatus] = useState<{ smtpConfigured: boolean } | null>(null);
+
   useEffect(() => {
     loadData();
+    getServerStatus().then(setServerStatus);
   }, [district]);
 
   const loadData = async () => {
@@ -460,6 +465,15 @@ export const AyyamAlBidDashboard: React.FC<AyyamAlBidDashboardProps> = ({ uid, u
             <span>{sendingEmail ? 'ইমেইল পাঠানো হচ্ছে...' : 'এখনই টেস্ট ইমেইল অ্যালার্ট পাঠান'}</span>
           </button>
         </div>
+
+        {serverStatus && !serverStatus.smtpConfigured && (
+          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-900 leading-relaxed">
+              <strong>ইমেইল কনফিগারেশন অনুপস্থিত:</strong> বর্তমানে আপনার সার্ভারে SMTP সেটআপ করা নেই। ইমেইল সতর্কবার্তাগুলো শুধুমাত্র "টেস্ট মোডে" যাবে। বাস্তব ইমেইল পেতে <code>SMTP_HOST</code>, <code>SMTP_USER</code> এবং <code>SMTP_PASS</code> এনভায়রনমেন্ট ভেরিয়েবল সেট করুন।
+            </div>
+          </div>
+        )}
 
         {emailStatusMsg && (
           <div

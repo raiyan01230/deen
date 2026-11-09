@@ -24,6 +24,7 @@ export type NavTabId =
   | 'ramadan'
   | 'character'
   | 'habits'
+  | 'improvement'
   | 'calendar'
   | 'analytics';
 
@@ -38,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'home', labelBn: 'হোম ড্যাশবোর্ড', labelEn: 'Home', icon: Home },
   { id: 'salah', labelBn: 'সালাত ট্র্যাকার', labelEn: 'Salah Tracker', icon: Clock },
   { id: 'deeds', labelBn: 'দৈনন্দিন আমল', labelEn: 'Daily Deeds', icon: CheckCircle2 },
+  { id: 'improvement', labelBn: 'ইমপ্রুভমেন্ট ট্র্যাকার', labelEn: 'Improvement', icon: Target },
   { id: 'ayyam', labelBn: 'আইয়ামে বীজ সিয়াম', labelEn: 'Ayyam al-Bid', icon: Moon },
   { id: 'hadith', labelBn: 'সহীহ হাদিস লাইব্রেরি', labelEn: 'Sahih Hadith', icon: BookOpen },
   { id: 'dua', labelBn: 'দুআ সম্ভার', labelEn: 'Dua Library', icon: Sparkles },

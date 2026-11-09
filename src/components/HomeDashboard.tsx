@@ -56,7 +56,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   quranLogs,
   characterReflection,
   dailyHadith,
-  totalVerifiedHadiths,
+  totalVerifiedHadiths = 0,
   onOpenHadithAdmin,
   onUpdatePrayer,
   onToggleDeed,

@@ -2,14 +2,78 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // MY DEEN & LIFE: Zero-trust private Islamic dashboard security rules
-    // All personal data is strictly isolated to the authenticated user's UID
+    
+    // Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'raiyan3945@gmail.com' ||
+        request.auth.uid == 'admin'
+      );
+    }
+    function incoming() { return request.resource.data; }
+
+    // Validation Blueprint for ImprovementLog
+    function isValidImprovementLog(data) {
+      return data.keys().hasAll(['id', 'date', 'salah', 'ghibahTrack']) &&
+             data.date is string && data.date.size() == 10 &&
+             data.salah is map && data.ghibahTrack is map;
+    }
 
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      
+      match /settings/profile {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
       }
+
+      match /settings/challenges {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && 
+                      incoming().currentChallengeId is number &&
+                      incoming().completedTaskIds is list;
+      }
+
+      match /prayerLogs/{date} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /dailyLogs/{date} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /improvementLogs/{date} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && isValidImprovementLog(incoming());
+      }
+
+      match /quranLogs/{logId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /characterReflections/{date} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /ramadanLogs/{date} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /customHabits/{habitId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /favorites/{duaId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Global corrections: Anyone can read, only admin can write
+    match /global/hijriAudit/corrections/{auditId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // Default deny for all other paths

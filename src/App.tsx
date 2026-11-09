@@ -17,6 +17,8 @@ import { FirebaseGuideModal } from './components/FirebaseGuideModal';
 import { AyyamAlBidDashboard } from './components/AyyamAlBidDashboard';
 import { HadithLibraryView } from './components/HadithLibraryView';
 import { HadithAdminModal } from './components/HadithAdminModal';
+import { ImprovementTracker } from './components/ImprovementTracker';
+
 
 import { AppUser, subscribeToAuth } from './services/authService';
 import {
@@ -594,6 +596,13 @@ export default function App() {
             prayerLogsCache={prayerLogsCache}
             deedsLogsCache={deedsLogsCache}
             quranLogs={quranLogs}
+          />
+        )}
+
+        {activeTab === 'improvement' && (
+          <ImprovementTracker
+            uid={user?.uid || 'guest'}
+            todayDate={currentDate}
           />
         )}
 

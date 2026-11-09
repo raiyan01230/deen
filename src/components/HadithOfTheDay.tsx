@@ -55,12 +55,21 @@ export const HadithOfTheDay: React.FC<HadithOfTheDayProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onOpenLibraryAdmin}
-          className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition border border-stone-200 flex items-center gap-1.5"
-        >
-          <span>হাদিস লাইব্রেরি ও ব্যবস্থাপনা</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 transition border border-stone-200"
+            title="অন্য হাদিস দেখুন"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onOpenLibraryAdmin}
+            className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition border border-stone-200 flex items-center gap-1.5"
+          >
+            <span>হাদিস লাইব্রেরি ও ব্যবস্থাপনা</span>
+          </button>
+        </div>
       </div>
 
       {/* Badges: Collection, Narrator, Topic */}

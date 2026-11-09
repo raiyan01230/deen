@@ -187,6 +187,17 @@ app.get('/api/cron/check-moon-sighting', (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Endpoint 4: Server Config Status
+ */
+app.get('/api/server/status', (req: Request, res: Response) => {
+  res.json({
+    smtpConfigured: !!(process.env.SMTP_HOST && process.env.SMTP_USER),
+    nodeEnv: process.env.NODE_ENV || 'development',
+    version: '1.2.0'
+  });
+});
+
 async function startServer() {
   const isDev = process.env.NODE_ENV !== 'production';
 

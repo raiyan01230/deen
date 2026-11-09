@@ -28,103 +28,6 @@ const LOCAL_HIJRI_PREFS_KEY = 'my_deen_hijri_prefs';
 const LOCAL_NOTIFS_KEY = 'my_deen_inapp_notifs';
 const LOCAL_AUDIT_KEY = 'my_deen_month_audits';
 
-/**
- * Returns current Bangladesh Hijri date intelligence with verification status.
- */
-export async function getBangladeshHijriDateInfo(
-  district: string = 'ঢাকা (Dhaka)',
-  customMonthStart?: string
-): Promise<BangladeshHijriDateInfo> {
-  const todayDhaka = getDhakaDateString();
-  const hijri = getApproximateHijriDate(new Date());
-
-  // Check if manual administrative correction exists
-  let status: MoonConfirmationStatus = 'estimated_provisional';
-  let statusLabelBn = 'বাংলাদেশ আবহাওয়া অধিদপ্তর ও জ্যোতির্বিজ্ঞানভিত্তিক অনুমিত তারিখ';
-  let sourceName = 'বাংলাদেশ আবহাওয়া অধিদপ্তর (BMD) ও ইসলামিক ক্যালেন্ডার প্রজেকশন';
-  let sourceUrl = 'https://www.bmd.gov.bd';
-  let discrepancyNote: string | undefined = undefined;
-
-  // Try fetching live cross-check status from backend API if available
-  try {
-    const res = await fetch(`/api/hijri/bangladesh-status?district=${encodeURIComponent(district)}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.status) {
-        status = data.status;
-        statusLabelBn = data.statusLabelBn || statusLabelBn;
-        sourceName = data.sourceName || sourceName;
-        sourceUrl = data.sourceUrl || sourceUrl;
-        discrepancyNote = data.discrepancyNote;
-      }
-    }
-  } catch (e) {
-    // Graceful offline fallback
-  }
-
-  return {
-    gregorianDate: todayDhaka,
-    hijriYear: hijri.year,
-    hijriMonth: hijri.month,
-    hijriMonthNameBn: hijri.monthNameBn,
-    hijriMonthNameAr: hijri.monthNameAr,
-    hijriDay: hijri.day,
-    confirmationStatus: status,
-    statusLabelBn,
-    district,
-    sourceType: status === 'officially_confirmed' ? 'IFB' : 'BMD',
-    sourceName,
-    sourceUrl,
-    retrievedTime: new Date().toISOString(),
-    discrepancyNote,
-    isDaysOfTashriq: hijri.month === 12 && (hijri.day === 11 || hijri.day === 12 || hijri.day === 13),
-  };
-}
-
-/**
- * Calculates current or upcoming month's Ayyam al-Bid dates for Bangladesh.
- * If the 15th of the current month has passed, it automatically returns the next month's schedule.
- */
-export async function getCurrentAyyamAlBidSchedule(
-  district: string = 'ঢাকা (Dhaka)'
-): Promise<AyyamAlBidDates> {
-  const info = await getBangladeshHijriDateInfo(district);
-  
-  // 1. Calculate current month's schedule
-  const currentMonthStart = getHijriMonthStart(info.hijriMonth, info.hijriYear);
-  const currentSchedule = calculateAyyamAlBidDates(
-    currentMonthStart,
-    info.hijriMonth,
-    info.hijriYear,
-    info.confirmationStatus
-  );
-
-  // 2. Check if the 15th has already passed (in Bangladesh time)
-  // We consider it "passed" after Maghrib of the 15th, or just the end of the day.
-  const d15 = new Date(`${currentSchedule.day15.gregorianDate}T23:59:59+06:00`);
-  const now = new Date();
-
-  if (now > d15) {
-    // Current month's Ayyam Al-Bid is over. Calculate for NEXT month.
-    let nextMonth = info.hijriMonth + 1;
-    let nextYear = info.hijriYear;
-    if (nextMonth > 12) {
-      nextMonth = 1;
-      nextYear += 1;
-    }
-
-    const nextMonthStart = getHijriMonthStart(nextMonth, nextYear);
-    return calculateAyyamAlBidDates(
-      nextMonthStart,
-      nextMonth,
-      nextYear,
-      'estimated_provisional' // Next month is always estimated initially
-    );
-  }
-
-  return currentSchedule;
-}
-
 // ===================== FASTING LOGS PERSISTENCE =====================
 
 export async function saveFastingLog(
@@ -230,7 +133,6 @@ export async function saveInAppNotification(
   notif: InAppNotification
 ): Promise<InAppNotification> {
   const list = await getInAppNotifications(uid);
-  // Prevent duplicate idempotency key
   if (notif.idempotencyKey && list.some((n) => n.idempotencyKey === notif.idempotencyKey)) {
     return notif;
   }
@@ -262,6 +164,34 @@ export async function markNotificationAsRead(uid: string, notifId: string): Prom
 
 // ===================== ADMIN AUDIT CORRECTIONS =====================
 
+export async function getLatestCorrection(
+  hijriMonth: number,
+  hijriYear: number
+): Promise<MonthStartCorrectionAudit | null> {
+  const local: MonthStartCorrectionAudit[] = JSON.parse(
+    localStorage.getItem(LOCAL_AUDIT_KEY) || '[]'
+  );
+  const foundLocal = local.find((a) => a.hijriMonth === hijriMonth && a.hijriYear === hijriYear);
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const colRef = collection(db, 'global', 'hijriAudit', 'corrections');
+      const snap = await getDocs(colRef);
+      if (!snap.empty) {
+        const audits = snap.docs.map((d) => d.data() as MonthStartCorrectionAudit);
+        localStorage.setItem(LOCAL_AUDIT_KEY, JSON.stringify(audits));
+        
+        const found = audits
+          .filter((a) => a.hijriMonth === hijriMonth && a.hijriYear === hijriYear)
+          .sort((a, b) => new Date(b.correctedAt).getTime() - new Date(a.correctedAt).getTime())[0];
+        
+        return found || foundLocal || null;
+      }
+    } catch (e) {}
+  }
+  return foundLocal || null;
+}
+
 export async function saveMonthCorrectionAudit(
   audit: MonthStartCorrectionAudit
 ): Promise<void> {
@@ -275,7 +205,9 @@ export async function saveMonthCorrectionAudit(
     try {
       const docRef = doc(db, 'global', 'hijriAudit', 'corrections', audit.id);
       await setDoc(docRef, audit, { merge: true });
-    } catch (e) {}
+    } catch (e) {
+      console.error('Firestore saveMonthCorrectionAudit error:', e);
+    }
   }
 }
 
@@ -284,17 +216,131 @@ export async function getMonthCorrectionAudits(): Promise<MonthStartCorrectionAu
     const saved = localStorage.getItem(LOCAL_AUDIT_KEY);
     if (saved) return JSON.parse(saved);
   } catch (e) {}
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const colRef = collection(db, 'global', 'hijriAudit', 'corrections');
+      const snap = await getDocs(colRef);
+      if (!snap.empty) {
+        const audits = snap.docs.map((d) => d.data() as MonthStartCorrectionAudit);
+        localStorage.setItem(LOCAL_AUDIT_KEY, JSON.stringify(audits));
+        return audits;
+      }
+    } catch (e) {}
+  }
   return [];
 }
 
 /**
- * Triggers test transactional email via server-side endpoint.
+ * Returns current Bangladesh Hijri date intelligence with verification status.
  */
+export async function getBangladeshHijriDateInfo(
+  district: string = 'ঢাকা (Dhaka)'
+): Promise<BangladeshHijriDateInfo> {
+  const todayDhaka = getDhakaDateString();
+  const rawHijri = getApproximateHijriDate(new Date());
+
+  const correction = await getLatestCorrection(rawHijri.month, rawHijri.year);
+  let effectiveHijri = rawHijri;
+  let status: MoonConfirmationStatus = 'estimated_provisional';
+  let statusLabelBn = 'বাংলাদেশ আবহাওয়া অধিদপ্তর ও জ্যোতির্বিজ্ঞানভিত্তিক অনুমিত তারিখ';
+  let sourceName = 'বাংলাদেশ আবহাওয়া অধিদপ্তর (BMD) ও ইসলামিক ক্যালেন্ডার প্রজেকশন';
+  let sourceUrl = 'https://www.bmd.gov.bd';
+
+  if (correction) {
+    const approxStartStr = getHijriMonthStart(rawHijri.month, rawHijri.year);
+    const approxStart = new Date(`${approxStartStr}T00:00:00+06:00`);
+    const correctedStart = new Date(`${correction.correctedStartDate}T00:00:00+06:00`);
+    const dayDiff = Math.round((correctedStart.getTime() - approxStart.getTime()) / (1000 * 60 * 60 * 24));
+    effectiveHijri = getApproximateHijriDate(new Date(), -dayDiff);
+    status = 'officially_confirmed';
+    statusLabelBn = 'ইসলামিক ফাউন্ডেশন বাংলাদেশ কর্তৃক আনুষ্ঠানিকভাবে ঘোষিত';
+    sourceName = correction.reason || 'জাতীয় চাঁদ দেখা কমিটির সিদ্ধান্ত';
+    sourceUrl = 'https://islamicfoundation.portal.gov.bd';
+  }
+
+  try {
+    const res = await fetch(`/api/hijri/bangladesh-status?district=${encodeURIComponent(district)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.status === 'officially_confirmed' && !correction) {
+        status = data.status;
+        statusLabelBn = data.statusLabelBn || statusLabelBn;
+        sourceName = data.sourceName || sourceName;
+        sourceUrl = data.sourceUrl || sourceUrl;
+      }
+    }
+  } catch (e) {}
+
+  return {
+    gregorianDate: todayDhaka,
+    hijriYear: effectiveHijri.year,
+    hijriMonth: effectiveHijri.month,
+    hijriMonthNameBn: effectiveHijri.monthNameBn,
+    hijriMonthNameAr: effectiveHijri.monthNameAr,
+    hijriDay: effectiveHijri.day,
+    confirmationStatus: status,
+    statusLabelBn,
+    district,
+    sourceType: status === 'officially_confirmed' ? 'IFB' : 'BMD',
+    sourceName,
+    sourceUrl,
+    retrievedTime: new Date().toISOString(),
+    isDaysOfTashriq: effectiveHijri.month === 12 && (effectiveHijri.day === 11 || effectiveHijri.day === 12 || effectiveHijri.day === 13),
+  };
+}
+
+export async function getCurrentAyyamAlBidSchedule(
+  district: string = 'ঢাকা (Dhaka)'
+): Promise<AyyamAlBidDates> {
+  const info = await getBangladeshHijriDateInfo(district);
+  let currentMonthStart = getHijriMonthStart(info.hijriMonth, info.hijriYear);
+  
+  const correction = await getLatestCorrection(info.hijriMonth, info.hijriYear);
+  if (correction) {
+    currentMonthStart = correction.correctedStartDate;
+  }
+
+  const currentSchedule = calculateAyyamAlBidDates(
+    currentMonthStart,
+    info.hijriMonth,
+    info.hijriYear,
+    info.confirmationStatus
+  );
+
+  const d15 = new Date(`${currentSchedule.day15.gregorianDate}T23:59:59+06:00`);
+  const now = new Date();
+
+  if (now > d15) {
+    let nextMonth = info.hijriMonth + 1;
+    let nextYear = info.hijriYear;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
+
+    let nextMonthStart = getHijriMonthStart(nextMonth, nextYear);
+    const nextCorrection = await getLatestCorrection(nextMonth, nextYear);
+    if (nextCorrection) {
+      nextMonthStart = nextCorrection.correctedStartDate;
+    }
+
+    return calculateAyyamAlBidDates(
+      nextMonthStart,
+      nextMonth,
+      nextYear,
+      nextCorrection ? 'officially_confirmed' : 'estimated_provisional'
+    );
+  }
+
+  return currentSchedule;
+}
+
 export async function triggerAyyamEmailAlert(
   email: string,
   ayyam: AyyamAlBidDates,
   advanceDays: number
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; isTestMode?: boolean }> {
   try {
     const res = await fetch('/api/notifications/email-ayyam-al-bid', {
       method: 'POST',
@@ -311,13 +357,16 @@ export async function triggerAyyamEmailAlert(
   }
 }
 
-/**
- * Helper to check if today is an Ayyam al-Bid fasting day for the current user's timezone.
- */
+export async function getServerStatus(): Promise<{ smtpConfigured: boolean }> {
+  try {
+    const res = await fetch('/api/server/status');
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { smtpConfigured: false };
+}
+
 export async function isTodayAyyamAlBid(district: string = 'ঢাকা (Dhaka)'): Promise<boolean> {
   const info = await getBangladeshHijriDateInfo(district);
-  // Fasting days are 13, 14, 15
-  // Exception: 13 Dhul Hijjah is prohibited
   if (info.hijriDay === 13 && info.hijriMonth === 12) return false;
   return [13, 14, 15].includes(info.hijriDay);
 }

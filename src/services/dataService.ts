@@ -823,6 +823,167 @@ export async function exportAllUserData(uid: string): Promise<{ json: string; cs
   return { json, csvPrayers: csv };
 }
 
+// ===================== SELF-IMPROVEMENT TRACKER =====================
+
+export async function saveImprovementLog(
+  uid: string,
+  log: import('../types/improvement').ImprovementLog
+): Promise<import('../types/improvement').ImprovementLog> {
+  if (!uid) return log;
+
+  const updatedLog = {
+    ...log,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const key = getLocalKey(uid, 'improvement', log.date);
+  localStorage.setItem(key, JSON.stringify(updatedLog));
+
+  updateSyncState({ status: 'saving', message: 'সেলফ-ইমপ্রুভমেন্ট রেকর্ড সেভ হচ্ছে...' });
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const docRef = doc(db, 'users', uid, 'improvementLogs', log.date);
+      await setDoc(docRef, updatedLog, { merge: true });
+      updateSyncState({ status: 'saved', message: 'ইমপ্রুভমেন্ট রেকর্ড সংরক্ষিত ✓' });
+    } catch (err: any) {
+      console.error('Firestore saveImprovementLog error:', err);
+      updateSyncState({ status: 'error', message: 'রেকর্ড সংরক্ষণে ত্রুটি' });
+    }
+  }
+
+  return updatedLog;
+}
+
+export async function getImprovementLog(
+  uid: string,
+  dateStr: string
+): Promise<import('../types/improvement').ImprovementLog> {
+  const fallback: import('../types/improvement').ImprovementLog = {
+    id: dateStr,
+    date: dateStr,
+    salah: { fajr: 'unrecorded', dhuhr: 'unrecorded', asr: 'unrecorded', maghrib: 'unrecorded', isha: 'unrecorded' },
+    ghibahTrack: {
+      committedGhibah: false,
+      participatedInGhibah: false,
+      laughedAtMockery: false,
+      stoppedInappropriateConv: false,
+      reactionNotes: '',
+    },
+    eventDescription: '',
+    goodDeeds: '',
+    mistakes: '',
+    todayLessons: '',
+    tomorrowGoals: '',
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!uid) return fallback;
+
+  const key = getLocalKey(uid, 'improvement', dateStr);
+  const localVal = localStorage.getItem(key);
+  let cached: any = localVal ? JSON.parse(localVal) : null;
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const docRef = doc(db, 'users', uid, 'improvementLogs', dateStr);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const data = snapshot.data() as import('../types/improvement').ImprovementLog;
+        localStorage.setItem(key, JSON.stringify(data));
+        return data;
+      }
+    } catch (err) {
+      console.warn('Firestore getImprovementLog error:', err);
+    }
+  }
+
+  return cached || fallback;
+}
+
+export function subscribeToImprovementLog(
+  uid: string,
+  dateStr: string,
+  onUpdate: (log: import('../types/improvement').ImprovementLog) => void
+): Unsubscribe {
+  if (!uid || !isFirebaseConfigured() || !db) {
+    getImprovementLog(uid, dateStr).then(onUpdate);
+    return () => {};
+  }
+
+  const docRef = doc(db, 'users', uid, 'improvementLogs', dateStr);
+  return onSnapshot(docRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.data() as import('../types/improvement').ImprovementLog;
+      onUpdate(data);
+    }
+  });
+}
+
+export async function saveChallengeProgress(
+  uid: string,
+  progress: import('../types/improvement').UserChallengeProgress
+): Promise<void> {
+  if (!uid) return;
+
+  const key = getLocalKey(uid, 'challenge_progress');
+  localStorage.setItem(key, JSON.stringify(progress));
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const docRef = doc(db, 'users', uid, 'settings', 'challenges');
+      await setDoc(docRef, progress, { merge: true });
+    } catch (err) {
+      console.error('Firestore saveChallengeProgress error:', err);
+    }
+  }
+}
+
+export async function getChallengeProgress(
+  uid: string
+): Promise<import('../types/improvement').UserChallengeProgress> {
+  const fallback: import('../types/improvement').UserChallengeProgress = {
+    currentChallengeId: 1,
+    completedTaskIds: [],
+  };
+
+  if (!uid) return fallback;
+
+  const key = getLocalKey(uid, 'challenge_progress');
+  const localVal = localStorage.getItem(key);
+  let cached = localVal ? JSON.parse(localVal) : null;
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const docRef = doc(db, 'users', uid, 'settings', 'challenges');
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        return snapshot.data() as import('../types/improvement').UserChallengeProgress;
+      }
+    } catch (err) {}
+  }
+
+  return cached || fallback;
+}
+
+export async function getImprovementLogsRange(
+  uid: string,
+  daysCount: number = 30
+): Promise<import('../types/improvement').ImprovementLog[]> {
+  const results: import('../types/improvement').ImprovementLog[] = [];
+  const today = new Date();
+  
+  for (let i = 0; i < daysCount; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const log = await getImprovementLog(uid, dateStr);
+    results.push(log);
+  }
+  
+  return results;
+}
+
 export async function deleteAllUserData(uid: string): Promise<void> {
   const keysToRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -833,3 +994,4 @@ export async function deleteAllUserData(uid: string): Promise<void> {
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k));
 }
+
